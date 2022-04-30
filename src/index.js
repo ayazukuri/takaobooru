@@ -105,10 +105,13 @@ client.on('interactionCreate', (interaction) => {
 });
 
 (async () => {
+    console.log(readFileSync(join(__dirname, '..', 'titlecard.txt')).toString('utf8'));
+    console.log('Sampling database...');
     const con = await pool.getConnection();
     await con.query(
         readFileSync(join(__dirname, 'schema.sql')).toString('utf8')
     );
     await con.end();
-    client.login(config.token);
+    console.log('Connecting to Discord...');
+    client.login(config.token).then(() => console.log('Connection established.'));
 })();
