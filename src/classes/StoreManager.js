@@ -14,7 +14,9 @@ class StoreManager {
     constructor(pool) {
         this.stores = new Map();
         this.pool = pool;
-        setInterval(async () => this.stores.forEach(([s]) => s.purge()), 300000);
+        setInterval(() => {
+            for (const s of this.stores.values()) s.purge();
+        }, 300000);
     }
 
     /**
