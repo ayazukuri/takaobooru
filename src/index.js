@@ -29,6 +29,7 @@ client.fetchRanking = async () => {
     client.ranking.clear();
     const con = await pool.getConnection();
     const rows = await con.query('SELECT id, guild_id, ROW_NUMBER() OVER (ORDER BY xp DESC) AS row_number FROM member');
+    await con.end();
     rows.forEach((row) => client.ranking.set(row.id + '.' + row.guild_id, row.row_number));
 };
 client.fetchRanking();
