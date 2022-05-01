@@ -1,5 +1,6 @@
 /* eslint-disable-next-line no-unused-vars */
 const { Pool } = require('mariadb');
+/* eslint-disable camelcase */
 
 /**
  * Helper class for handling guild members.
@@ -68,4 +69,57 @@ class XMember {
     }
 }
 
-module.exports = XMember;
+/**
+ * Helper class for handling channel data.
+ */
+class XChannel {
+    /**
+     * @param {object} row Channel row from database.
+     * @param {Pool} pool Database connection pool.
+     */
+    constructor({ channel_id, guild_id, multiplier, allow_commands }, pool) {
+        this.channelId = channel_id;
+        this.guildId = guild_id;
+        this.multiplier = multiplier;
+        this.allowCommands = allow_commands;
+        this.pool = pool;
+    }
+}
+
+/**
+ * Helper class for handling reward data.
+ */
+class XReward {
+    /**
+     * @param {object} row Reward row from database.
+     * @param {Pool} pool Database connection pool.
+     */
+    constructor({ guild_id, role_id, level }, pool) {
+        this.guildId = guild_id;
+        this.roleId = role_id;
+        this.level = level;
+        this.pool = pool;
+    }
+}
+
+/**
+ * Helper class for handling settings data.
+ */
+class XSettings {
+    /**
+     * @param {object} row Settings row from database.
+     * @param {Pool} pool Database connection pool.
+     */
+    constructor({ guild_id, log_channel }, pool) {
+        this.guildId = guild_id;
+        this.logChannel = log_channel;
+        this.pool = pool;
+    }
+}
+
+module.exports = {
+    XMember,
+    XChannel,
+    XReward,
+    XSettings
+};

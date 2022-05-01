@@ -15,7 +15,9 @@ class StoreManager {
         this.stores = new Map();
         this.pool = pool;
         setInterval(() => {
-            for (const s of this.stores.values()) s.purge();
+            for (const s of this.stores.values()) {
+                if (s.maxAge !== Infinity) s.purge();
+            }
         }, 300000);
     }
 
@@ -23,8 +25,8 @@ class StoreManager {
      * Creates a store with this manager.
      * @param {string} name Identifier.
      * @param {number} maxAge Max age of cache entries.
-     * @param {function} standardCallback Standard fetch callback in case none was specified.
-     * @return {Store} Created store.
+     * @param {function(PoolConnection): (function(...any): void)} standardCallback Standard fetch callback in case none was specified.
+     * @return {Promise<Store>} Created store.
      */
     store(name, maxAge, standardCallback) {
         const s = new Store(this, maxAge, standardCallback);

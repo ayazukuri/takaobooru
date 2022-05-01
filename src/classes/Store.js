@@ -28,12 +28,15 @@ class Store {
     async get(key, cb = this.standardCallback) {
         const k = typeof key === 'string' ? key : key.join('&');
         if (this.cache.has(k)) {
-            return this.cache.get(k);
+            return this.cache.get(k).data;
         }
         const con = await this.manager.connect();
         const r = await cb(con)(key);
         con.end();
-        this.cache.set(k, r);
+        this.cache.set(k, {
+            data: r,
+            expiry: parseInt(new Date().getTime() / 1000 + this.maxAge)
+        });
         return r;
     }
 
@@ -44,7 +47,10 @@ class Store {
      */
     async set(key, value) {
         const k = typeof key === 'string' ? key : key.join('&');
-        this.cache.set(k, value);
+        this.cache.set(k, {
+            data: value,
+            expiry: parseInt(new Date().getTime() / 1000 + this.maxAge)
+        });
     }
 
     /**

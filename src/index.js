@@ -2,7 +2,7 @@ const { Client, Intents } = require('discord.js');
 const mariadb = require('mariadb');
 const { readFileSync, readdirSync } = require('fs');
 const { join } = require('path');
-const XMember = require('./classes/XMember');
+const { XMember, XChannel, XReward } = require('./classes/XHelper');
 const StoreManager = require('./classes/StoreManager');
 
 const config = require('../config.json');
@@ -47,9 +47,9 @@ const channels = mn.store('channels', 10800, (con) => async (channelId) => {
         [channelId]
     );
     if (rows.length === 0) return null;
-    return rows[0];
+    return new XChannel(rows[0], pool);
 });
-const members = mn.store('members', 3600, (con) => async ([guildId, userId]) => {
+const members = mn.store('members', 10800, (con) => async ([guildId, userId]) => {
     const rows = await con.query(
         'SELECT * FROM member WHERE guild_id = ? AND id = ?',
         [guildId, userId]
@@ -72,7 +72,7 @@ const rewards = mn.store('rewards', 10800, (con) => async (guildId) => {
         'SELECT * FROM reward WHERE guild_id = ?',
         [guildId]
     );
-    return rows;
+    return rows.map((row) => new XReward(row, pool));
 });
 
 const cooldown = new Map();
@@ -95,7 +95,7 @@ client.on('messageCreate', async (message) => {
     if (up === 50) message.react('🍪');
     if (oldLevel === newLevel) return;
     /* eslint-disable-next-line camelcase */
-    const roleIds = (await rewards.get(message.guildId)).filter(({ level }) => level <= newLevel).map(({ role_id }) => role_id);
+    const roleIds = (await rewards.get(message.guildId)).filter(({ level }) => level <= newLevel).map(({ roleId }) => roleId);
     message.member.roles.add(roleIds);
 });
 
@@ -107,12 +107,13 @@ client.on('interactionCreate', (interaction) => {
 
 (async () => {
     console.log(readFileSync(join(__dirname, '..', 'titlecard.txt')).toString('utf8'));
-    console.log('Sampling database...');
+    console.log('Preparing database...');
     const con = await pool.getConnection();
     await con.query(
         readFileSync(join(__dirname, 'schema.sql')).toString('utf8')
     );
     await con.end();
+    console.log('Done.');
     console.log('Connecting to Discord...');
     client.login(config.token).then(() => console.log('Connection established.'));
 })();

@@ -3,7 +3,7 @@ const { SlashCommandBuilder } = require('@discordjs/builders');
 const { MessageEmbed, Client, Interaction } = require('discord.js');
 const Store = require('../classes/Store');
 const StoreManager = require('../classes/StoreManager');
-const XMember = require('../classes/XMember');
+const { XMember, XReward } = require('../classes/XHelper');
 /* eslint-enable no-unused-vars */
 
 module.exports = {
@@ -30,8 +30,10 @@ module.exports = {
         /** @type {XMember} */
         const member = await members.get([interaction.guildId, id]);
         const level = member.getLevel();
+        /** @type {XReward[]} */
         const rewardList = await rewards.get(interaction.guildId);
-        const nextReward = Math.min(...rewardList.map((row) => row.level).filter((l) => l > level));
+        const nextReward = Math.min(...rewardList.map(({ level }) => level).filter((l) => l > level));
+        /** @type {XChannel?} */
         const ch = await channels.get(interaction.channelId);
         const allowCommands = !!ch?.allow_commands || false;
         const currXp = member.xp - XMember.formula(level);
