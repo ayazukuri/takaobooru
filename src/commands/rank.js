@@ -38,7 +38,7 @@ module.exports = {
         const allowCommands = !!ch?.allow_commands || false;
         const currXp = member.xp - XMember.formula(level);
         const needXp = XMember.formula(level + 1) - XMember.formula(level);
-        const ranking = client.ranking.get(id + '.' + interaction.guildId)?.toString() || '?';
+        const ranking = client.ranking.get(interaction.guildId)?.get(id)?.toString() || '?';
         const embed = new MessageEmbed();
         embed
             .setAuthor({

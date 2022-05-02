@@ -28,11 +28,14 @@ client.ranking = new Map();
 client.fetchRanking = async () => {
     client.ranking.clear();
     const con = await pool.getConnection();
-    const rows = await con.query('SELECT id, guild_id, ROW_NUMBER() OVER (ORDER BY xp DESC) AS row_number FROM member');
+    for (const guildId of client.guilds.cache.map(({ id }) => id)) {
+        const r = new Map();
+        const rows = await con.query('SELECT id, ROW_NUMBER() OVER (ORDER BY xp DESC) AS row_number FROM member WHERE guild_id = ?', [guildId]);
+        rows.forEach((row) => r.set(row.id, row.row_number));
+        client.ranking.set(guildId, r);
+    }
     await con.end();
-    rows.forEach((row) => client.ranking.set(row.id + '.' + row.guild_id, row.row_number));
 };
-client.fetchRanking();
 setInterval(client.fetchRanking.bind(client), 60000);
 
 const commands = new Map();
@@ -77,13 +80,17 @@ const rewards = mn.store('rewards', 10800, (con) => async (guildId) => {
 
 const cooldown = new Map();
 
+client.on('ready', () => {
+    client.fetchRanking();
+});
+
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     /** @type {number} */
     const ch = await channels.get(message.channelId);
     const multiplier = ch?.multiplier || 1;
     if (multiplier === 0) return;
-    if (cooldown.get(message.author.id) || 0 > new Date().getTime() / 1000) {
+    if ((cooldown.get(message.author.id) || 0) > new Date().getTime() / 1000) {
         return;
     }
     cooldown.set(message.author.id, parseInt(new Date().getTime() / 1000 + 60));
