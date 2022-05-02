@@ -35,7 +35,7 @@ module.exports = {
         const nextReward = Math.min(...rewardList.map(({ level }) => level).filter((l) => l > level));
         /** @type {XChannel?} */
         const ch = await channels.get(interaction.channelId);
-        const allowCommands = !!ch?.allow_commands || false;
+        const allowCommands = !!ch?.allowCommands || false;
         const currXp = member.xp - XMember.formula(level);
         const needXp = XMember.formula(level + 1) - XMember.formula(level);
         const ranking = client.ranking.get(interaction.guildId)?.get(id)?.toString() || '?';
