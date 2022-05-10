@@ -22,8 +22,8 @@ module.exports = {
             interaction.reply({ content: 'This guild is not configured yet!', ephemeral: true });
             return;
         }
-        const id = interaction.options.getUser('user')?.id || interaction.user.id;
-        const user = await client.users.fetch(id);
+        const user = interaction.options.getUser('user') || interaction.user;
+        const id = user.id;
         const member = guild.members.get(id);
         if (member === undefined) {
             interaction.reply({ content: 'I don\'t seem to have anything on file for you! Keep talking and check back later!~', ephemeral: true });
