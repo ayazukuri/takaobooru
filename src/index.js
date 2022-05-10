@@ -84,7 +84,7 @@ client.on('interactionCreate', (interaction) => {
     await mgclient.connect();
     const db = mgclient.db('takao');
     for await (const doc of db.collection('guilds').find()) {
-        const memberDocs = await (await db.collection('members').find({ guildId: doc._id })).toArray();
+        const memberDocs = await (await db.collection('members').find({ '_id.guildId': doc._id })).toArray();
         guilds.set(doc._id, new XGuild(doc, memberDocs));
     }
     setInterval(async () => {
