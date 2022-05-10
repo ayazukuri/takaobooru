@@ -1,7 +1,3 @@
-/* eslint-disable-next-line no-unused-vars */
-const { Pool } = require('mariadb');
-/* eslint-disable camelcase */
-
 /**
  * Helper class for handling guild members.
  */
@@ -24,40 +20,29 @@ class XMember {
         return Math.sqrt(x) / 10;
     }
 
-    /* eslint-disable camelcase */
     /**
-     * @param {object} member Member row from database.
-     * @param {Pool} pool Database connection pool.
+     * @param {{ _id: string, id: string, guildId: string, xp: number }} member MongoDB member document.
      */
-    constructor({ id, guild_id, xp }, pool) {
+    constructor({ _id, id, guildId, xp }) {
+        /** @type {string} */
+        this._id = _id;
+        /** @type {string} */
         this.id = id;
-        this.guildId = guild_id;
+        /** @type {string} */
+        this.guildId = guildId;
+        /** @type {number} */
         this.xp = xp;
-        this.pool = pool;
     }
 
     /**
      * Modify XP of this member.
      * @param {number} xp XP to add (negative numbers allowed).
-     * @return {boolean} Whether level was affected.
+     * @return {[number, number]} Whether level was affected.
      */
     modifyXp(xp) {
         const old = this.getLevel();
         this.xp += xp;
-        this.updateXp();
         return [old, this.getLevel()];
-    }
-
-    /**
-     * Update database entry of this member.
-     */
-    async updateXp() {
-        const con = await this.pool.getConnection();
-        await con.query(
-            'UPDATE member SET xp = ? WHERE guild_id = ? AND id = ?',
-            [this.xp, this.guildId, this.id]
-        );
-        await con.end();
     }
 
     /**
@@ -67,59 +52,77 @@ class XMember {
     getLevel() {
         return Math.floor(XMember.inverseFormula(this.xp));
     }
-}
 
-/**
- * Helper class for handling channel data.
- */
-class XChannel {
     /**
-     * @param {object} row Channel row from database.
-     * @param {Pool} pool Database connection pool.
+     * Convert this member into a MongoDB document.
+     * @return {object}
      */
-    constructor({ channel_id, guild_id, multiplier, allow_commands }, pool) {
-        this.channelId = channel_id;
-        this.guildId = guild_id;
-        this.multiplier = multiplier;
-        this.allowCommands = allow_commands;
-        this.pool = pool;
+    toDoc() {
+        return {
+            _id: this._id,
+            id: this.id,
+            guildId: this.guildId,
+            xp: this.xp
+        };
     }
 }
 
 /**
- * Helper class for handling reward data.
+ * Helper class for handling guilds.
  */
-class XReward {
+class XGuild {
+    /* eslint-disable-next-line valid-jsdoc */
     /**
-     * @param {object} row Reward row from database.
-     * @param {Pool} pool Database connection pool.
+     * @param {{ _id: string, logChannel: string, rewards: { id: string, level: number }[], channels: { id: string, multiplier: number, allowCommands: boolean }[] }} doc MongoDB guild document.
+     * @param {import('mongodb').WithId<Document>[]} memberDocs Member documents for this guild.
      */
-    constructor({ guild_id, role_id, level }, pool) {
-        this.guildId = guild_id;
-        this.roleId = role_id;
-        this.level = level;
-        this.pool = pool;
+    constructor({ _id, logChannel, rewards, channels }, memberDocs) {
+        /** @type {string} */
+        this.id = _id;
+        /** @type {string} */
+        this.logChannel = logChannel;
+        /** @type {{ id: string, level: number }[]} */
+        this.rewards = rewards;
+        /** @type {Map<string, { id: string, multiplier: number, allowCommands: boolean }>} */
+        this.channels = new Map();
+        this.members = new Map();
+        channels.forEach((ch) => this.channels.set(ch.id, ch));
+        memberDocs.forEach((m) => this.members.set(m.id, new XMember(m)));
     }
-}
 
-/**
- * Helper class for handling settings data.
- */
-class XSettings {
     /**
-     * @param {object} row Settings row from database.
-     * @param {Pool} pool Database connection pool.
+     * Calculates all roles available to a member.
+     * @param {number} newLevel New level of a member.
+     * @return {string[]} All role IDs of roles this member is eligible for.
      */
-    constructor({ guild_id, log_channel }, pool) {
-        this.guildId = guild_id;
-        this.logChannel = log_channel;
-        this.pool = pool;
+    getRewardsFor(newLevel) {
+        return this.rewards.filter(({ level }) => level <= newLevel).map(({ id }) => id);
+    }
+
+    /**
+     * Calculates the next reward's level.
+     * @param {number} currLevel Current level of a member.
+     * @return {number} Level at which the member is eligible for a new reward.
+     */
+    getNextReward(currLevel) {
+        return Math.min(...this.rewards.map(({ level }) => level).filter((l) => l > currLevel));
+    }
+
+    /**
+     * Convert this guild into a MongoDB document.
+     * @return {object}
+     */
+    toDoc() {
+        return {
+            _id: this.id,
+            logChannel: this.logChannel,
+            rewards: this.rewards,
+            channels: this.channels
+        };
     }
 }
 
 module.exports = {
     XMember,
-    XChannel,
-    XReward,
-    XSettings
+    XGuild
 };

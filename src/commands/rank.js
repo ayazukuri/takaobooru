@@ -1,10 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-/* eslint-disable no-unused-vars */
-const { MessageEmbed, Client, Interaction } = require('discord.js');
-const Store = require('../classes/Store');
-const StoreManager = require('../classes/StoreManager');
-const { XMember, XReward } = require('../classes/XHelper');
-/* eslint-enable no-unused-vars */
+const { MessageEmbed } = require('discord.js');
+const { XMember } = require('../classes/XHelper');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -14,31 +10,29 @@ module.exports = {
             option.setName('user')
                 .setDescription('User to view.')
         ),
+    /* eslint-disable-next-line valid-jsdoc */
     /**
      * Command handler.
      * @param {Client} client Discord client.
-     * @param {StoreManager} mn StoreManager for this application.
-     * @return {function(Interaction): Promise<void>}
+     * @param {import('../classes/XHelper').XGuild} guild XGuild.
+     * @return {function(import('discord.js').CommandInteraction): Promise<void>}
      */
-    handler: (client, mn) => async (interaction) => {
-        /** @type {Store} */
-        const members = mn.stores.get('members');
-        const rewards = mn.stores.get('rewards');
-        const channels = mn.stores.get('channels');
+    handler: (client, guild) => async (interaction) => {
         const id = interaction.options.getUser('user')?.id || interaction.user.id;
         const user = await client.users.fetch(id);
-        /** @type {XMember} */
-        const member = await members.get([interaction.guildId, id]);
+        const member = guild.members.get(id);
+        if (member === undefined) {
+            interaction.reply({ content: 'I don\'t seem to have anything on file for you! Keep talking and check back later~', ephemeral: true });
+            return;
+        }
         const level = member.getLevel();
-        /** @type {XReward[]} */
-        const rewardList = await rewards.get(interaction.guildId);
-        const nextReward = Math.min(...rewardList.map(({ level }) => level).filter((l) => l > level));
-        /** @type {XChannel?} */
-        const ch = await channels.get(interaction.channelId);
-        const allowCommands = !!ch?.allowCommands || false;
+        const nextReward = guild.getNextReward(level);
+        const ch = guild.channels.get(interaction.channelId);
+        const allowCommands = !!(ch?.allowCommands);
         const currXp = member.xp - XMember.formula(level);
         const needXp = XMember.formula(level + 1) - XMember.formula(level);
-        const ranking = client.ranking.get(interaction.guildId)?.get(id)?.toString() || '?';
+        // TODO: Redo ranking!
+        const ranking = '?';
         const embed = new MessageEmbed();
         embed
             .setAuthor({

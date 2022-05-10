@@ -3,7 +3,8 @@
     "@discordjs/rest": "^0.4.1",
     "discord-api-types": "^0.26.1",
     "discord.js": "^13.6.0",
-    "mariadb": "^3.0.0"
+    "mariadb": "^3.0.0",
+    "mongodb": "^4.5.0"
   },
   "devDependencies": {
     "eslint": "^8.14.0",
