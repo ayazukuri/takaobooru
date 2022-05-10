@@ -54,9 +54,10 @@ client.on('messageCreate', async (message) => {
     let member = guild.members.get(message.author.id);
     if (member === undefined) {
         member = new XMember({
-            _id: message.guildId + '/' + message.author.id,
-            id: message.author.id,
-            guildId: message.guildId,
+            _id: {
+                id: message.author.id,
+                guildId: message.guildId
+            },
             xp: 0
         });
         guild.members.set(message.author.id, member);

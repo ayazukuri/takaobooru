@@ -21,15 +21,15 @@ class XMember {
     }
 
     /**
-     * @param {{ _id: string, id: string, guildId: string, xp: number }} member MongoDB member document.
+     * @param {{ _id: { id: string, guildId: string }, xp: number }} member MongoDB member document.
      */
-    constructor({ _id, id, guildId, xp }) {
-        /** @type {string} */
+    constructor({ _id, xp }) {
+        /** @type {{ id: string, guildId: string }} */
         this._id = _id;
         /** @type {string} */
-        this.id = id;
+        this.id = _id.id;
         /** @type {string} */
-        this.guildId = guildId;
+        this.guildId = _id.guildId;
         /** @type {number} */
         this.xp = xp;
     }
@@ -60,8 +60,6 @@ class XMember {
     toDoc() {
         return {
             _id: this._id,
-            id: this.id,
-            guildId: this.guildId,
             xp: this.xp
         };
     }
@@ -87,7 +85,7 @@ class XGuild {
         this.channels = new Map();
         this.members = new Map();
         channels.forEach((ch) => this.channels.set(ch.id, ch));
-        memberDocs.forEach((m) => this.members.set(m.id, new XMember(m)));
+        memberDocs.forEach((m) => this.members.set(m._id.id, new XMember(m)));
     }
 
     /**
