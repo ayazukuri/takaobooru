@@ -91,6 +91,7 @@ client.on('interactionCreate', (interaction) => {
         const amount = memQ.size;
         if (amount === 0) return;
         await db.collection('members').bulkWrite(Array.from(memQ.values()).map((mem) => ({ replaceOne: { filter: { _id: mem._id }, replacement: mem.toDoc(), upsert: true } })));
+        memQ.clear();
         console.log('Wrote ' + amount + ' to database.');
     }, 300000);
     console.log('Done.');
