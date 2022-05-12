@@ -35,8 +35,7 @@ module.exports = {
         const allowCommands = !!(ch?.allowCommands);
         const currXp = member.xp - XMember.formula(level);
         const needXp = XMember.formula(level + 1) - XMember.formula(level);
-        // TODO: Redo ranking!
-        const ranking = '?';
+        const ranking = guild.calculateRank(id) || '?';
         const embed = new MessageEmbed();
         embed
             .setAuthor({

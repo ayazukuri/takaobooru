@@ -69,7 +69,7 @@ client.on('messageCreate', async (message) => {
     if (up === 50) message.react('🍪');
     if (oldLevel === newLevel) return;
     const roleIds = guild.getRewardsFor(newLevel);
-    message.member.roles.add(roleIds);
+    if (!message.member.roles.cache.hasAll(...roleIds)) message.member.roles.add(roleIds);
 });
 
 client.on('interactionCreate', (interaction) => {

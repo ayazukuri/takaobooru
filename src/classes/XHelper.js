@@ -83,6 +83,7 @@ class XGuild {
         this.rewards = rewards;
         /** @type {Map<string, { id: string, multiplier: number, allowCommands: boolean }>} */
         this.channels = new Map();
+        /** @type {Map<string, XMember>} */
         this.members = new Map();
         channels.forEach((ch) => this.channels.set(ch.id, ch));
         memberDocs.forEach((m) => this.members.set(m._id.id, new XMember(m)));
@@ -104,6 +105,16 @@ class XGuild {
      */
     getNextReward(currLevel) {
         return Math.min(...this.rewards.map(({ level }) => level).filter((l) => l > currLevel));
+    }
+
+    /**
+     * Calculates the rank of the specified member.
+     * @param {string} id Member id.
+     * @return {number} Rank.
+     */
+    calculateRank(id) {
+        const m = this.members.get(id);
+        return Array.from(this.members.values()).sort((m1, m2) => m2.xp - m1.xp).indexOf(m) + 1;
     }
 
     /**
