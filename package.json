@@ -1,4 +1,9 @@
 {
+  "name": "takaobooru",
+  "version": "2.1.0",
+  "description": "Horizontal Cookies",
+  "author": "ayasaku#1871",
+  "license": "GNU GPL 3.0",
   "dependencies": {
     "@discordjs/rest": "^0.4.1",
     "discord-api-types": "^0.26.1",

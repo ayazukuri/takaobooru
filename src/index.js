@@ -29,6 +29,7 @@ const client = new Client({
     ]
 });
 client.config = config;
+client.startTime = new Date().getTime();
 /** @type {Set<XMember>} */
 const memQ = new Set();
 
@@ -74,7 +75,12 @@ client.on('messageCreate', async (message) => {
 
 client.on('interactionCreate', (interaction) => {
     if (interaction.isCommand() && guilds.has(interaction.guildId)) {
-        commands.get(interaction.commandName)(client, guilds.get(interaction.guildId))(interaction);
+        const guild = guilds.get(interaction.guildId);
+        if (guild === undefined) {
+            interaction.reply({ content: 'This guild has not been configured yet.' });
+            return;
+        }
+        commands.get(interaction.commandName)(client, guild)(interaction);
     }
 });
 

@@ -18,10 +18,6 @@ module.exports = {
      * @return {function(import('discord.js').CommandInteraction): Promise<void>}
      */
     handler: (client, guild) => async (interaction) => {
-        if (guild === undefined) {
-            interaction.reply({ content: 'This guild is not configured yet!', ephemeral: true });
-            return;
-        }
         const user = interaction.options.getUser('user') || interaction.user;
         const id = user.id;
         const member = guild.members.get(id);
@@ -50,6 +46,6 @@ module.exports = {
             .addField('Rank', '#' + ranking.toLocaleString(), true)
             .addField('Total XP', member.xp.toLocaleString(), true)
             .setFooter({ text: `Rank info (${id})` });
-        await interaction.reply({ embeds: [embed], ephemeral: !allowCommands });
+        interaction.reply({ embeds: [embed], ephemeral: !allowCommands });
     }
 };
