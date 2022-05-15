@@ -69,24 +69,37 @@ class XMember {
  * Helper class for handling guilds.
  */
 class XGuild {
-    /* eslint-disable-next-line valid-jsdoc */
     /**
-     * @param {{ _id: string, logChannel: string, rewards: { id: string, level: number }[], channels: { id: string, multiplier: number, allowCommands: boolean }[] }} doc MongoDB guild document.
+     * @param {{ _id: string, logChannel: string, roles: { id: string, level: ?number, multiplier: ?number }[], channels: { id: string, multiplier: number, allowCommands: boolean }[] }} doc MongoDB guild document.
      * @param {import('mongodb').WithId<Document>[]} memberDocs Member documents for this guild.
      */
-    constructor({ _id, logChannel, rewards, channels }, memberDocs) {
+    constructor({ _id, logChannel, roles = [], channels = [] }, memberDocs) {
         /** @type {string} */
         this.id = _id;
-        /** @type {string} */
+        /** @type {?string} */
         this.logChannel = logChannel;
-        /** @type {{ id: string, level: number }[]} */
-        this.rewards = rewards;
-        /** @type {Map<string, { id: string, multiplier: number, allowCommands: boolean }>} */
+        /** @type {Map<string, { id: string, level: ?number, multiplier: ?number }>} */
+        this.roles = new Map();
+        /** @type {Map<string, { id: string, multiplier: ?number, allowCommands: ?boolean }>} */
         this.channels = new Map();
         /** @type {Map<string, XMember>} */
         this.members = new Map();
         channels.forEach((ch) => this.channels.set(ch.id, ch));
+        roles.forEach((r) => this.roles.set(r.id, r));
         memberDocs.forEach((m) => this.members.set(m._id.id, new XMember(m)));
+    }
+
+    /**
+     * Calculates all applicable multipliers given by roles and channels
+     * @param {string} channelId ID of the channel this was posted in.
+     * @param {string[]} roles Role IDs.
+     * @return {number} Calculated multiplier.
+     */
+    multiplier(channelId, roles) {
+        const ch = this.channels.get(channelId);
+        const chm = ch?.multiplier ?? 1;
+        const rm = Array.from(this.roles.values()).filter(({ id }) => roles.includes(id)).reduce((prev, { multiplier }) => (multiplier ?? 1) * prev, 1);
+        return chm * rm;
     }
 
     /**
@@ -95,7 +108,7 @@ class XGuild {
      * @return {string[]} All role IDs of roles this member is eligible for.
      */
     getRewardsFor(newLevel) {
-        return this.rewards.filter(({ level }) => level <= newLevel).map(({ id }) => id);
+        return Array.from(this.roles.values()).filter(({ level }) => (level ?? Infinity) <= newLevel).map(({ id }) => id);
     }
 
     /**
@@ -104,7 +117,7 @@ class XGuild {
      * @return {number} Level at which the member is eligible for a new reward.
      */
     getNextReward(currLevel) {
-        return Math.min(...this.rewards.map(({ level }) => level).filter((l) => l > currLevel));
+        return Math.min(...Array.from(this.roles.values()).map(({ level }) => level ?? -1).filter((l) => l > currLevel));
     }
 
     /**
@@ -125,8 +138,8 @@ class XGuild {
         return {
             _id: this.id,
             logChannel: this.logChannel,
-            rewards: this.rewards,
-            channels: this.channels
+            roles: Array.from(this.roles.values()),
+            channels: Array.from(this.channels.values())
         };
     }
 }

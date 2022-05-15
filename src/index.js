@@ -28,10 +28,11 @@ const client = new Client({
         Intents.FLAGS.DIRECT_MESSAGE_REACTIONS
     ]
 });
-client.config = config;
-client.startTime = new Date().getTime();
 /** @type {Set<XMember>} */
 const memQ = new Set();
+client.config = config;
+client.startTime = new Date().getTime();
+client.memQ = memQ;
 
 const commands = new Map();
 for (const file of readdirSync(join(__dirname, 'commands'))) {
@@ -47,10 +48,9 @@ client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     const guild = guilds.get(message.guildId);
     if (guild === undefined) return;
-    const ch = guild.channels.get(message.channelId);
-    const multiplier = ch?.multiplier || 1;
+    if ((cooldown.get(message.author.id) ?? 0) > new Date().getTime() / 1000) return;
+    const multiplier = guild.multiplier(message.channelId, Array.from(message.member.roles.cache.keys()));
     if (multiplier === 0) return;
-    if ((cooldown.get(message.author.id) || 0) > new Date().getTime() / 1000) return;
     cooldown.set(message.author.id, parseInt(new Date().getTime() / 1000 + 60));
     let member = guild.members.get(message.author.id);
     if (member === undefined) {

@@ -10,15 +10,14 @@ module.exports = {
             option.setName('user')
                 .setDescription('User to view.')
         ),
-    /* eslint-disable-next-line valid-jsdoc */
     /**
      * Command handler.
-     * @param {Client} client Discord client.
+     * @param {import('discord.js').Client} client Discord client.
      * @param {import('../classes/XHelper').XGuild} guild XGuild.
      * @return {function(import('discord.js').CommandInteraction): Promise<void>}
      */
     handler: (client, guild) => async (interaction) => {
-        const user = interaction.options.getUser('user') || interaction.user;
+        const user = interaction.options.getUser('user') ?? interaction.user;
         const id = user.id;
         const member = guild.members.get(id);
         if (member === undefined) {
@@ -31,7 +30,7 @@ module.exports = {
         const allowCommands = !!(ch?.allowCommands);
         const currXp = member.xp - XMember.formula(level);
         const needXp = XMember.formula(level + 1) - XMember.formula(level);
-        const ranking = guild.calculateRank(id) || '?';
+        const ranking = guild.calculateRank(id) ?? '?';
         const embed = new MessageEmbed();
         embed
             .setAuthor({

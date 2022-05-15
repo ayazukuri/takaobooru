@@ -23,10 +23,9 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('stats')
         .setDescription('Display statistics.'),
-    /* eslint-disable-next-line valid-jsdoc */
     /**
      * Command handler.
-     * @param {Client} client Discord client.
+     * @param {import('discord.js').Client} client Discord client.
      * @param {import('../classes/XHelper').XGuild} guild XGuild.
      * @return {function(import('discord.js').CommandInteraction): Promise<void>}
      */
@@ -41,7 +40,7 @@ module.exports = {
             .addField('RAM Usage', `${Math.floor((totalmem() - freemem()) / 1000000)}MB / ${Math.floor(totalmem() / 1000000)}MB`, true)
             .addField('Uptime', msToTime(new Date().getTime() - client.startTime), true)
             .setFooter({
-                text: 'Takao.booru: created by ayasaku#1871 using discord.js and MongoDB'
+                text: 'Takao.booru'
             });
         const ch = guild.channels.get(interaction.channelId);
         const allowCommands = !!(ch?.allowCommands);

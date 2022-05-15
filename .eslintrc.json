@@ -14,6 +14,7 @@
         "indent": ["error", 4],
         "object-curly-spacing": ["error", "always"],
         "comma-dangle": ["error", "never"],
-        "max-len": "off"
+        "max-len": "off",
+        "valid-jsdoc": "off"
     }
 }
