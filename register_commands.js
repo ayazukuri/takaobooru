@@ -3,7 +3,7 @@ const { Routes } = require('discord-api-types/v9');
 const { argv } = require('process');
 const { readdirSync } = require('fs');
 const { join } = require('path');
-const { token, clientId } = require('../config.json');
+const { token, clientId } = require('./config.json');
 
 const commands = [];
 for (const file of readdirSync(join(__dirname, 'commands'))) {
@@ -11,7 +11,7 @@ for (const file of readdirSync(join(__dirname, 'commands'))) {
     commands.push(command.data.toJSON());
 }
 
-const rest = new REST({ version: 9 }).setToken(token);
+const rest = new REST({ version: '9' }).setToken(token);
 
 (async () => {
     try {
