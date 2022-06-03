@@ -3,21 +3,24 @@ import { XGuildDoc, XMemberDoc } from "./interfaces";
 export class XGuild {
     id: string;
     logChannel?: string;
+    approveChannel?: string;
     roles: Map<string, {
-        id: string,
-        level?: number,
-        multiplier?: number
+        id: string;
+        level?: number;
+        multiplier?: number;
     }>;
     channels: Map<string, {
-        id: string,
-        multiplier?: number,
-        allowCommands?: boolean
+        id: string;
+        multiplier?: number;
+        allowCommands?: boolean;
+        moderatedPosts?: boolean;
     }>;
     members: Map<string, XMember>;
 
-    constructor({ _id, logChannel, roles = [], channels = [] }: XGuildDoc, memberDocs: XMemberDoc[]) {
+    constructor({ _id, logChannel, approveChannel, roles = [], channels = [] }: XGuildDoc, memberDocs: XMemberDoc[]) {
         this.id = _id;
         this.logChannel = logChannel;
+        this.approveChannel = approveChannel;
         this.roles = new Map();
         this.channels = new Map();
         this.members = new Map();
@@ -51,6 +54,7 @@ export class XGuild {
         return {
             _id: this.id,
             logChannel: this.logChannel,
+            approveChannel: this.approveChannel,
             roles: Array.from(this.roles.values()),
             channels: Array.from(this.channels.values())
         };
@@ -62,6 +66,9 @@ export class XMember {
     id: string;
     guildId: string;
     xp: number;
+    uploadLimit: number;
+    uploads: number;
+    deletions: number;
 
     static formula(x: number): number {
         return 100 * x ** 2;
@@ -71,11 +78,14 @@ export class XMember {
         return Math.sqrt(x) / 10;
     }
 
-    constructor({ _id, xp }: XMemberDoc) {
+    constructor({ _id, xp, uploadLimit, uploads, deletions }: XMemberDoc) {
         this._id = _id;
         this.id = _id.id;
         this.guildId = _id.guildId;
         this.xp = xp;
+        this.uploadLimit = uploadLimit || 10;
+        this.uploads = uploads || 0;
+        this.deletions = deletions || 0;
     }
 
     modifyXp(xp: number): [number, number] {
@@ -91,7 +101,10 @@ export class XMember {
     toDoc(): XMemberDoc {
         return {
             _id: this._id,
-            xp: this.xp
+            xp: this.xp,
+            uploadLimit: this.uploadLimit,
+            uploads: this.uploads,
+            deletions: this.deletions
         };
     }
 }

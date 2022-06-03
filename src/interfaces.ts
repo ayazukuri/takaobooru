@@ -35,6 +35,7 @@ export interface Context {
 export interface XGuildDoc {
     _id: string;
     logChannel?: string;
+    approveChannel?: string;
     roles: {
         id: string;
         level?: number;
@@ -44,6 +45,7 @@ export interface XGuildDoc {
         id: string;
         multiplier?: number;
         allowCommands?: boolean;
+        moderatedPosts?: boolean;
     }[];
 }
 
@@ -53,4 +55,18 @@ export interface XMemberDoc {
         guildId: string;
     };
     xp: number;
+    uploadLimit: number;
+    uploads: number;
+    deletions: number;
+}
+
+export interface CPostDoc {
+    _id: {
+        message_id: string;
+        approval_id: string;
+        author_id: string;
+        channel_id: string;
+    };
+    count: number;
+    time: number;
 }
