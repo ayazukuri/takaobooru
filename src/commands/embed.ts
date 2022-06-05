@@ -29,13 +29,14 @@ export default {
         if (roleopt) {
             const row = new MessageActionRow()
                 .addComponents(new MessageButton()
-                    .setCustomId("role")
+                    .setCustomId("role:" + roleopt.id)
                     .setLabel(roleopt.name)
                     .setStyle("PRIMARY")
                 );
             await interaction.channel?.send({ embeds: emJson instanceof Array ? emJson : [emJson], components: [row] });
-            return;
+        } else {
+            await interaction.channel?.send({ embeds: emJson instanceof Array ? emJson : [emJson] });
         }
-        await interaction.channel?.send({ embeds: emJson instanceof Array ? emJson : [emJson] });
+        interaction.reply({ content: "Success!", ephemeral: true });
     }
 };

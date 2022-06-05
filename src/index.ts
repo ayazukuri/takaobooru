@@ -163,7 +163,8 @@ async function main(): Promise<void> {
                     embeds,
                     components: [approveRow]
                 });
-                if (member.uploadLimit >= await getPending(message.author.id)) {
+                const pending = await getPending(message.author.id);
+                if (member.uploadLimit > pending && member.uploadLimit <= pending + embeds.length) {
                     message.member!.roles.add(guild.limitedRole!);
                 }
                 cpost = {
@@ -209,13 +210,20 @@ async function main(): Promise<void> {
             }
             commands.get(interaction.commandName)!(context, guild)(interaction);
         } else if (interaction.isButton()) {
+            if (interaction.customId.startsWith("role")) {
+                const guildMember = await interaction.guild!.members.fetch(interaction.user.id);
+                const roleId: string = interaction.customId.split(":")[1];
+                await guildMember.roles.add(roleId);
+                await interaction.reply({ content: "Role added!", ephemeral: true });
+                return;
+            }
             const cpost = await db.collection("cpost").findOne({ "_id.approvalId": interaction.message.id, "status": 0 }) as unknown as CPostDoc;
             if (cpost === null) {
                 interaction.reply({ content: "Post not found!", ephemeral: true });
                 return;
             }
-            const member = guild.getMember(cpost._id.authorId);
             const guildMember = await interaction.guild!.members.fetch(cpost._id.authorId);
+            const member = guild.getMember(cpost._id.authorId);
             let cnt = "";
             switch (interaction.customId) {
             case "approve":
