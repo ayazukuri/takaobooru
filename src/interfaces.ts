@@ -36,10 +36,13 @@ export interface XGuildDoc {
     _id: string;
     logChannel?: string;
     approveChannel?: string;
+    limitedRole?: string;
     roles: {
         id: string;
         level?: number;
         multiplier?: number;
+        curator?: boolean;
+        staff?: boolean;
     }[];
     channels: {
         id: string;
@@ -55,18 +58,21 @@ export interface XMemberDoc {
         guildId: string;
     };
     xp: number;
-    uploadLimit: number;
-    uploads: number;
-    deletions: number;
+    uploadLimit?: number;
 }
+
+// 0: PENDING, 1: APPROVED, 2: DELETED/PENDING, 3: DELETED, 4: FLAGGED/PENDING
+type PostStatus = 0 | 1 | 2 | 3;
 
 export interface CPostDoc {
     _id: {
-        message_id: string;
-        approval_id: string;
-        author_id: string;
-        channel_id: string;
+        messageId: string;
+        approvalId: string;
+        authorId: string;
+        channelId: string;
     };
     count: number;
     time: number;
+    status: PostStatus;
+    approver?: string;
 }

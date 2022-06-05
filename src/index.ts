@@ -2,7 +2,7 @@ import { Client, Intents, MessageActionRow, MessageButton, MessageEmbed, TextCha
 import { MongoClient, Document } from "mongodb";
 import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
-import { XGuild, XMember } from "./classes";
+import { XGuild } from "./classes";
 import { Context, HandlerFunction, Config, Command, XGuildDoc, XMemberDoc, CPostDoc } from "./interfaces";
 
 const config: Config = JSON.parse(readFileSync(join(__dirname, "../config.json")).toString("utf8"));
@@ -17,7 +17,7 @@ const client = new Client({ intents: [
     Intents.FLAGS.DIRECT_MESSAGE_REACTIONS
 ] });
 
-const row = new MessageActionRow()
+const approveRow = new MessageActionRow()
     .addComponents(
         new MessageButton()
             .setCustomId("approve")
@@ -28,6 +28,22 @@ const row = new MessageActionRow()
             .setLabel("Delete")
             .setStyle("DANGER")
     );
+
+const logRowBuilder = (label: string) => new MessageActionRow()
+    .addComponents(
+        new MessageButton()
+            .setCustomId("flag")
+            .setLabel(label)
+            .setStyle("SECONDARY")
+            .setDisabled(true)
+    );
+
+function resclass(height: number, width: number): string {
+    if (height >= 2400 || width >= 3200) return "absurd";
+    else if (height >= 1200 || width >= 1600) return "high";
+    else if (height > 500 || width > 500) return "medium";
+    return "low";
+}
 
 async function main(): Promise<void> {
     let mgclient: MongoClient;
@@ -67,7 +83,9 @@ async function main(): Promise<void> {
         await db.collection("members").bulkWrite(Array.from(context.memQ.values()).map((mem) => ({ replaceOne: { filter: { _id: mem._id }, replacement: mem.toDoc(), upsert: true } })));
         context.memQ.clear();
         console.log("Wrote " + amount + " to database.");
+        await db.collection("cpost").updateMany({ status: 2, time: { $lt: Math.floor(new Date().getTime() / 1000) - 172800 } }, { $set: { status: 3 } });
     }, 300000);
+    const getPending = async (id: string) => (await (await db.collection("cpost").aggregate([{ $match: { "_id.authorId": id, "status": { $in: [0, 2] } } }, { $group: { "_id": "$_id.authorId", "total": { $sum: "$count" } } }]).next()))?.total || 0;
 
     const commands: Map<string, HandlerFunction> = new Map();
     for (const file of readdirSync(join(__dirname, "commands"))) {
@@ -79,38 +97,88 @@ async function main(): Promise<void> {
 
     client.on("messageCreate", async (message) => {
         if (message.author.bot) return;
-        const guild = guilds.get(message.guildId as string);
+        const guild = guilds.get(message.guildId!);
         if (guild === undefined) return;
         const moderated = guild.channels.get(message.channelId)?.moderatedPosts || false;
+        const member = guild.getMember(message.author.id);
 
         // Channel content uses approval process.
         if (moderated) {
-            const modch = client.channels.cache.get(guild.approveChannel as string) as TextChannel;
-            if (modch === undefined) return;
+            if (message.attachments.size === 0 && message.embeds.length === 0) {
+                await message.delete();
+                return;
+            }
+            const modch = (await client.channels.fetch(guild.approveChannel!)) as TextChannel | null;
+            if (modch === null) return;
             const cnt = message.content.length <= 100 ? message.content : message.content.substring(0, 100) + "...";
-            const attachments = Array.from(message.attachments.values());
-            const appMsg = await modch.send({
-                content: `${message.author.tag} posted in <#${(message.channel as TextChannel).id}>:${cnt.length > 0 ? "\n" + cnt : ""}`,
-                embeds: attachments.map(({ url, height, width, size }) =>
-                    new MessageEmbed()
-                        .setColor(context.config.defaultColour as ColorResolvable)
-                        .setFooter({ text: `${(size / 1000000).toFixed(1)}MB` + (height ? `  ${height}x${width}` : "") })
-                        .setImage(url)
-                ),
-                components: [row]
-            });
-            const cpost: CPostDoc = {
-                _id: {
-                    message_id: message.id,
-                    author_id: message.author.id,
-                    channel_id: message.channelId,
-                    approval_id: appMsg.id
-                },
-                count: attachments.length,
-                time: new Date().getTime()
-            };
+            const embeds = [];
+            for (const emg of message.embeds) {
+                const { thumbnail } = emg;
+                if (thumbnail === null) continue;
+                const em = new MessageEmbed()
+                    .setColor(context.config.defaultColour as ColorResolvable)
+                    .setImage(thumbnail.url);
+                if (thumbnail.height) em.setFooter({ text: `${thumbnail.height}x${thumbnail.width} (${resclass(thumbnail.height, thumbnail.width!)})` });
+                embeds.push(em);
+            }
+            for (const att of Array.from(message.attachments.values())) {
+                const { url, height, width } = att;
+                const em = new MessageEmbed()
+                    .setColor(context.config.defaultColour as ColorResolvable)
+                    .setImage(url);
+                if (height) em.setFooter({ text: `${height}x${width} (${resclass(height, width!)})` });
+                embeds.push(em);
+            }
+            if (embeds.length > 10) {
+                await message.delete();
+                return;
+            }
+            let cpost: CPostDoc;
+            if (Array.from(guild.roles.values()).filter((role) => message.member?.roles.cache.has(role.id)).find((role) => role.curator)) {
+                await member.modifyXp(250 * embeds.length, {
+                    guild: message.guild!,
+                    member: message.member!
+                });
+                const appMsg = await modch.send({
+                    content: "."
+                });
+                await appMsg.edit({
+                    content: "⭐ CURATED: " + new Date().toLocaleString("de") + " by <@" + message.author.id + ">",
+                    components: [logRowBuilder(message.id)]
+                });
+                cpost = {
+                    _id: {
+                        messageId: message.id,
+                        authorId: message.author.id,
+                        channelId: message.channelId,
+                        approvalId: appMsg.id
+                    },
+                    count: embeds.length,
+                    time: Math.floor(new Date().getTime() / 1000),
+                    status: 1
+                };
+            } else {
+                const appMsg = await modch.send({
+                    content: `⌛ PENDING: ${message.author.tag} posted in <#${(message.channel as TextChannel).id}>:${cnt.length > 0 ? "\n" + cnt : ""}`,
+                    embeds,
+                    components: [approveRow]
+                });
+                if (member.uploadLimit >= await getPending(message.author.id)) {
+                    message.member!.roles.add(guild.limitedRole!);
+                }
+                cpost = {
+                    _id: {
+                        messageId: message.id,
+                        authorId: message.author.id,
+                        channelId: message.channelId,
+                        approvalId: appMsg.id
+                    },
+                    count: embeds.length,
+                    time: Math.floor(new Date().getTime() / 1000),
+                    status: 0
+                };
+            }
             await db.collection("cpost").insertOne(cpost as Document);
-            return;
         }
 
         // Regular message XP.
@@ -118,42 +186,60 @@ async function main(): Promise<void> {
         const multiplier = guild.multiplier(message.channelId, Array.from(message.member!.roles.cache.keys()));
         if (multiplier === 0) return;
         cooldown.set(message.author.id, Math.floor(new Date().getTime() / 1000 + 60));
-        let member = guild.members.get(message.author.id);
-        if (member === undefined) {
-            member = new XMember({
-                _id: {
-                    id: message.author.id,
-                    guildId: message.guildId!
-                },
-                xp: 0,
-                uploadLimit: 10,
-                uploads: 0,
-                deletions: 0
-            });
-            guild.members.set(message.author.id, member);
-        }
+
         // Value between 10 and 50.
         const up = Math.floor(Math.random() * 41) + 10;
-        const [oldLevel, newLevel] = member.modifyXp(up * multiplier);
+        member.modifyXp(up * multiplier, {
+            guild: message.guild!,
+            member: message.member!
+        });
         context.memQ.add(member);
         if (up === 50) message.react("🍪");
-        if (oldLevel === newLevel) return;
-        const roleIds = guild.getRewardsFor(newLevel);
-        if (!message.member!.roles.cache.hasAll(...roleIds)) message.member!.roles.add(roleIds);
     });
 
-    client.on("interactionCreate", (interaction) => {
-        if (interaction.isCommand() && interaction.inGuild()) {
-            const guild = guilds.get(interaction.guildId);
-            if (guild === undefined) {
-                interaction.reply({ content: "This guild has not been configured yet." });
-                return;
-            }
+    client.on("interactionCreate", async (interaction) => {
+        if (!interaction.inGuild()) return;
+        const guild = guilds.get(interaction.guildId);
+        if (guild === undefined) {
+            return;
+        }
+        if (interaction.isCommand()) {
             if (!commands.has(interaction.commandName)) {
                 return;
             }
             commands.get(interaction.commandName)!(context, guild)(interaction);
         } else if (interaction.isButton()) {
+            const cpost = await db.collection("cpost").findOne({ "_id.approvalId": interaction.message.id, "status": 0 }) as unknown as CPostDoc;
+            if (cpost === null) {
+                interaction.reply({ content: "Post not found!", ephemeral: true });
+                return;
+            }
+            const member = guild.getMember(cpost._id.authorId);
+            const guildMember = await interaction.guild!.members.fetch(cpost._id.authorId);
+            let cnt = "";
+            switch (interaction.customId) {
+            case "approve":
+                cnt = "✅ APPROVED";
+                await db.collection("cpost").updateOne({ "_id.approvalId": interaction.message.id }, { $set: { "status": 1 } });
+                member.modifyXp(250 * cpost.count, {
+                    guild: interaction.guild!,
+                    member: guildMember
+                });
+                context.memQ.add(member);
+                const pending = await getPending(cpost._id.authorId);
+                if (member.uploadLimit > pending && member.uploadLimit <= pending + cpost.count) {
+                    await guildMember.roles.remove(guild.limitedRole!);
+                }
+                break;
+            case "delete":
+                cnt = "❌ DELETED";
+                await db.collection("cpost").updateOne({ "_id.approvalId": interaction.message.id }, { $set: { "status": 2 } });
+                const { messageId, channelId } = cpost._id;
+                const ch = (await interaction.guild?.channels.fetch(channelId)) as TextChannel;
+                await (await ch.messages.fetch(messageId)).delete();
+                break;
+            }
+            interaction.update({ content: cnt + ": " + new Date().toLocaleString("de") + " by <@" + interaction.user.id + ">", embeds: [], components: [logRowBuilder(cpost._id.messageId)] });
         }
     });
 
