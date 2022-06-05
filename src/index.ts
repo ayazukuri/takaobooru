@@ -29,15 +29,6 @@ const approveRow = new MessageActionRow()
             .setStyle("DANGER")
     );
 
-const logRowBuilder = (label: string) => new MessageActionRow()
-    .addComponents(
-        new MessageButton()
-            .setCustomId("flag")
-            .setLabel(label)
-            .setStyle("SECONDARY")
-            .setDisabled(true)
-    );
-
 function resclass(height: number, width: number): string {
     if (height >= 2400 || width >= 3200) return "absurd";
     else if (height >= 1200 || width >= 1600) return "high";
@@ -108,8 +99,6 @@ async function main(): Promise<void> {
                 await message.delete();
                 return;
             }
-            const modch = (await client.channels.fetch(guild.approveChannel!)) as TextChannel | null;
-            if (modch === null) return;
             const cnt = message.content.length <= 100 ? message.content : message.content.substring(0, 100) + "...";
             const embeds = [];
             for (const emg of message.embeds) {
@@ -135,17 +124,13 @@ async function main(): Promise<void> {
             }
             let cpost: CPostDoc;
             if (Array.from(guild.roles.values()).filter((role) => message.member?.roles.cache.has(role.id)).find((role) => role.curator)) {
+                const logch = (await client.channels.fetch(guild.logChannel!)) as TextChannel | null;
+                if (logch === null) return;
                 await member.modifyXp(250 * embeds.length, {
                     guild: message.guild!,
                     member: message.member!
                 });
-                const appMsg = await modch.send({
-                    content: "."
-                });
-                await appMsg.edit({
-                    content: "⭐ CURATED: " + new Date().toLocaleString("de") + " by <@" + message.author.id + ">",
-                    components: [logRowBuilder(message.id)]
-                });
+                const appMsg = await logch.send({ content: "⭐ <@" + message.author.id +"> CURATED: " + new Date().toLocaleString("de") });
                 cpost = {
                     _id: {
                         messageId: message.id,
@@ -158,6 +143,8 @@ async function main(): Promise<void> {
                     status: 1
                 };
             } else {
+                const modch = (await client.channels.fetch(guild.approveChannel!)) as TextChannel | null;
+                if (modch === null) return;
                 const appMsg = await modch.send({
                     content: `⌛ PENDING: ${message.author.tag} posted in <#${(message.channel as TextChannel).id}>:${cnt.length > 0 ? "\n" + cnt : ""}`,
                     embeds,
@@ -180,6 +167,7 @@ async function main(): Promise<void> {
                 };
             }
             await db.collection("cpost").insertOne(cpost as Document);
+            return;
         }
 
         // Regular message XP.
@@ -196,6 +184,13 @@ async function main(): Promise<void> {
         });
         context.memQ.add(member);
         if (up === 50) message.react("🍪");
+    });
+
+    client.on("messageDelete", async (message) => {
+        const guild = guilds.get(message.guildId!);
+        if (guild === undefined) return;
+        if (!guild.channels.get(message.channelId)?.moderatedPosts) return;
+        await db.collection("cpost").deleteOne({ "_id.messageId": message.id });
     });
 
     client.on("interactionCreate", async (interaction) => {
@@ -227,7 +222,7 @@ async function main(): Promise<void> {
             let cnt = "";
             switch (interaction.customId) {
             case "approve":
-                cnt = "✅ APPROVED";
+                cnt = "✅ <@" + guildMember.id + "> APPROVED";
                 await db.collection("cpost").updateOne({ "_id.approvalId": interaction.message.id }, { $set: { "status": 1 } });
                 member.modifyXp(250 * cpost.count, {
                     guild: interaction.guild!,
@@ -240,14 +235,17 @@ async function main(): Promise<void> {
                 }
                 break;
             case "delete":
-                cnt = "❌ DELETED";
+                cnt = "❌ <@" + guildMember.id + "> DELETED";
                 await db.collection("cpost").updateOne({ "_id.approvalId": interaction.message.id }, { $set: { "status": 2 } });
                 const { messageId, channelId } = cpost._id;
                 const ch = (await interaction.guild?.channels.fetch(channelId)) as TextChannel;
                 await (await ch.messages.fetch(messageId)).delete();
                 break;
             }
-            interaction.update({ content: cnt + ": " + new Date().toLocaleString("de") + " by <@" + interaction.user.id + ">", embeds: [], components: [logRowBuilder(cpost._id.messageId)] });
+            await interaction.deleteReply();
+            const logch = (await client.channels.fetch(guild.logChannel!)) as TextChannel | null;
+            if (logch === null) return;
+            await logch.send({ content: cnt + ": " + new Date().toLocaleString("de") + " by <@" + interaction.user.id + ">" });
         }
     });
 
