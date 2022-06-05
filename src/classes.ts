@@ -64,9 +64,7 @@ export class XGuild {
                     guildId: this.id
                 },
                 xp: 0,
-                uploadLimit: 10,
-                uploads: 0,
-                deletions: 0
+                uploadLimit: 10
             }, this);
             this.members.set(id, member);
         }
@@ -91,8 +89,6 @@ export class XMember {
     guildId: string;
     xp: number;
     uploadLimit: number;
-    uploads: number;
-    deletions: number;
     xguild: XGuild;
 
     static formula(x: number): number {
@@ -103,14 +99,12 @@ export class XMember {
         return Math.sqrt(x) / 10;
     }
 
-    constructor({ _id, xp, uploadLimit, uploads, deletions }: XMemberDoc, xguild: XGuild) {
+    constructor({ _id, xp, uploadLimit }: XMemberDoc, xguild: XGuild) {
         this._id = _id;
         this.id = _id.id;
         this.guildId = _id.guildId;
         this.xp = xp;
         this.uploadLimit = uploadLimit || 10;
-        this.uploads = uploads || 0;
-        this.deletions = deletions || 0;
         this.xguild = xguild;
     }
 
@@ -131,9 +125,7 @@ export class XMember {
         return {
             _id: this._id,
             xp: this.xp,
-            uploadLimit: this.uploadLimit,
-            uploads: this.uploads,
-            deletions: this.deletions
+            uploadLimit: this.uploadLimit
         };
     }
 }
