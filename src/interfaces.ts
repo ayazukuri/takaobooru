@@ -1,13 +1,19 @@
 import { XGuild, XMember } from "./classes";
-import { CommandInteraction, Client } from "discord.js";
+import { CommandInteraction, ButtonInteraction, Client } from "discord.js";
 import { SlashCommandBuilder } from "@discordjs/builders";
-import { MongoClient } from "mongodb";
+import { Db } from "mongodb";
 
-export type HandlerFunction = (context: Context, guild: XGuild) => (interaction: CommandInteraction) => Promise<void>;
+export type CommandFunction = (context: Context, guild: XGuild) => (interaction: CommandInteraction<"cached">) => Promise<void>;
+export type ButtonFunction = (context: Context, guild: XGuild) => (interaction: ButtonInteraction<"cached">, ...args: string[]) => Promise<void>;
+export type ListenerFunction = (context: Context) => (...args: any[]) => Promise<void>;
 
 export interface Command {
     data: SlashCommandBuilder;
-    handler: HandlerFunction;
+    handler: CommandFunction;
+}
+
+export interface Button {
+    handler: ButtonFunction;
 }
 
 export interface Config {
@@ -26,17 +32,23 @@ export interface Config {
 
 export interface Context {
     client: Client;
-    mgclient: MongoClient;
+    db: Db;
     memQ: Set<XMember>;
+    activityCooldown: Map<string, number>;
+    xGuilds: Map<string, XGuild>;
     startTime: number;
+    handlers: {
+        commands: Map<string, CommandFunction>;
+        buttons: Map<string, ButtonFunction>;
+    };
     config: Config;
 }
 
 export interface XGuildDoc {
     _id: string;
-    logChannel?: string;
-    approveChannel?: string;
-    limitedRole?: string;
+    logChannel: string;
+    approveChannel: string;
+    limitedRole: string;
     roles: {
         id: string;
         level?: number;

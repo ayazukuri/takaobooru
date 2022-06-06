@@ -3,9 +3,9 @@ import { XGuildDoc, XMemberDoc } from "./interfaces";
 
 export class XGuild {
     id: string;
-    logChannel?: string;
-    approveChannel?: string;
-    limitedRole?: string;
+    logChannel: string;
+    approveChannel: string;
+    limitedRole: string;
     roles: Map<string, {
         id: string;
         level?: number;
@@ -51,13 +51,13 @@ export class XGuild {
 
     calculateRank(id: string): number {
         const m = this.members.get(id);
-        if (m === undefined) return 0;
+        if (!m) return 0;
         return Array.from(this.members.values()).sort((m1, m2) => m2.xp - m1.xp).indexOf(m) + 1;
     }
 
     getMember(id: string): XMember {
         let member = this.members.get(id);
-        if (member === undefined) {
+        if (!member) {
             member = new XMember({
                 _id: {
                     id: id,
