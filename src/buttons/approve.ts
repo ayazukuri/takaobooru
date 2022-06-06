@@ -25,9 +25,7 @@ export const handler: ButtonFunction = (context, xGuild) => async (interaction) 
     await logch.send({ content: `<@${cpost._id.authorId}>`, embeds: [{
         title: "✅ Approved",
         description: `By <@${interaction.user.id}>`,
-        footer: {
-            text: new Date().toLocaleString("de")
-        },
+        timestamp: new Date(),
         color: <ColorResolvable> context.config.defaultColour
     }] });
 };

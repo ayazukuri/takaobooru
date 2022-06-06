@@ -63,9 +63,7 @@ export const exec = (context: Context, xGuild: XGuild) => async (message: Messag
             embeds: [{
                 title: "⭐ Curated",
                 description: "By <@" + message.author.id + ">",
-                footer: {
-                    text: new Date().toLocaleString("de")
-                },
+                timestamp: new Date(),
                 color: <ColorResolvable>context.config.defaultColour
             }]
         });

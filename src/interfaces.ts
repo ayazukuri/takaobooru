@@ -50,18 +50,22 @@ export interface XGuildDoc {
     approveChannel: string;
     limitedRole: string;
     roles: {
-        id: string;
-        level?: number;
-        multiplier?: number;
-        curator?: boolean;
-        staff?: boolean;
-    }[];
+        [id: string]: {
+            id: string;
+            level?: number;
+            multiplier?: number;
+            curator?: boolean;
+            staff?: boolean;
+        };
+    };
     channels: {
-        id: string;
-        multiplier?: number;
-        allowCommands?: boolean;
-        moderatedPosts?: boolean;
-    }[];
+        [id: string]: {
+            id: string;
+            multiplier?: number;
+            allowCommands?: boolean;
+            moderatedPosts?: boolean;
+        };
+    };
 }
 
 export interface XMemberDoc {

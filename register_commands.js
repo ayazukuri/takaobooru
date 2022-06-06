@@ -9,7 +9,7 @@ const commands = [];
 for (const file of readdirSync(join(__dirname, 'dist/commands'))) {
     if (!file.endsWith(".js")) continue;
     const command = require(join(__dirname, 'dist/commands', file));
-    commands.push(command.default.data.toJSON());
+    commands.push(command.data.toJSON());
 }
 
 const rest = new REST({ version: '9' }).setToken(token);

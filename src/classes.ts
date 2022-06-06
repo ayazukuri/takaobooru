@@ -21,7 +21,7 @@ export class XGuild {
     }>;
     members: Map<string, XMember>;
 
-    constructor({ _id, logChannel, approveChannel, limitedRole, roles = [], channels = [] }: XGuildDoc, memberDocs: XMemberDoc[]) {
+    constructor({ _id, logChannel, approveChannel, limitedRole, roles = {}, channels = {} }: XGuildDoc, memberDocs: XMemberDoc[]) {
         this.id = _id;
         this.logChannel = logChannel;
         this.approveChannel = approveChannel;
@@ -29,8 +29,8 @@ export class XGuild {
         this.roles = new Map();
         this.channels = new Map();
         this.members = new Map();
-        channels.forEach((ch) => this.channels.set(ch.id, ch));
-        roles.forEach((r) => this.roles.set(r.id, r));
+        Object.keys(roles).forEach((k) => this.roles.set(k, roles[k]));
+        Object.keys(channels).forEach((k) => this.channels.set(k, channels[k]));
         memberDocs.forEach((m) => this.members.set(m._id.id, new XMember(m, this)));
     }
 
@@ -77,8 +77,8 @@ export class XGuild {
             logChannel: this.logChannel,
             approveChannel: this.approveChannel,
             limitedRole: this.limitedRole,
-            roles: Array.from(this.roles.values()),
-            channels: Array.from(this.channels.values())
+            roles: Object.fromEntries(this.roles.entries()),
+            channels: Object.fromEntries(this.channels.entries())
         };
     }
 }
