@@ -130,7 +130,14 @@ async function main(): Promise<void> {
                     guild: message.guild!,
                     member: message.member!
                 });
-                const appMsg = await logch.send({ content: "⭐ <@" + message.author.id +"> CURATED: " + new Date().toLocaleString("de") });
+                const appMsg = await logch.send({ embeds: [{
+                    title: "⭐ Curated",
+                    description: "By <@" + message.author.id + ">",
+                    footer: {
+                        text: new Date().toLocaleString("de")
+                    },
+                    color: context.config.defaultColour as ColorResolvable
+                }] });
                 cpost = {
                     _id: {
                         messageId: message.id,
@@ -222,7 +229,7 @@ async function main(): Promise<void> {
             let cnt = "";
             switch (interaction.customId) {
             case "approve":
-                cnt = "✅ <@" + guildMember.id + "> APPROVED";
+                cnt = "✅ Approved";
                 await db.collection("cpost").updateOne({ "_id.approvalId": interaction.message.id }, { $set: { "status": 1 } });
                 member.modifyXp(250 * cpost.count, {
                     guild: interaction.guild!,
@@ -235,17 +242,24 @@ async function main(): Promise<void> {
                 }
                 break;
             case "delete":
-                cnt = "❌ <@" + guildMember.id + "> DELETED";
+                cnt = "❌ Deleted";
                 await db.collection("cpost").updateOne({ "_id.approvalId": interaction.message.id }, { $set: { "status": 2 } });
                 const { messageId, channelId } = cpost._id;
                 const ch = (await interaction.guild?.channels.fetch(channelId)) as TextChannel;
                 await (await ch.messages.fetch(messageId)).delete();
                 break;
             }
-            await interaction.deleteReply();
+            await interaction.channel?.messages.delete(interaction.message.id);
             const logch = (await client.channels.fetch(guild.logChannel!)) as TextChannel | null;
             if (logch === null) return;
-            await logch.send({ content: cnt + ": " + new Date().toLocaleString("de") + " by <@" + interaction.user.id + ">" });
+            await logch.send({ content: "<@" + guildMember.id + ">", embeds: [{
+                title: cnt,
+                description: "Approver: <@" + interaction.user.id + ">",
+                footer: {
+                    text: new Date().toLocaleString("de")
+                },
+                color: context.config.defaultColour as ColorResolvable
+            }] });
         }
     });
 
