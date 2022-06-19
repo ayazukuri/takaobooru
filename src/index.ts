@@ -66,12 +66,14 @@ async function main(): Promise<void> {
         context.handlers.commands.set(command.data.name, command.handler);
     }
 
+    /*
     for (const file of readdirSync(join(__dirname, "buttons"))) {
         if (!file.endsWith(".js")) continue;
         const name = file.split(".").slice(0, -1).join(".");
         const button: Button = await import(join(__dirname, "buttons", file));
         context.handlers.buttons.set(name, button.handler);
     }
+    */
 
     client.on("interactionCreate", listeners.interaction(context));
     client.on("guildMemberAdd", listeners.guildMemberAdd(context));
