@@ -11,10 +11,8 @@ export const handler: ListenerFunction = (context) => async (interaction: Intera
         if (!fn) return;
         await fn(context, xGuild)(interaction);
     } else if (interaction.isButton()) {
-        const csv = interaction.customId.split(":");
-        const btn = csv.shift()!;
-        const fn = context.handlers.buttons.get(btn);
+        const fn = context.handlers.buttons.get(interaction.customId);
         if (!fn) return;
-        await fn(context, xGuild)(interaction, ...csv);
+        await fn(context, xGuild)(interaction);
     }
 };

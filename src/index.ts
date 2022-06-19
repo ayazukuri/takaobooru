@@ -3,7 +3,7 @@ import { MongoClient } from "mongodb";
 import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
 import { XGuild } from "./classes";
-import { Context, Config, Command, XGuildDoc, XMemberDoc, Button } from "./interfaces";
+import { Context, Config, Command, XGuildDoc, Button } from "./interfaces";
 import * as listeners from "./listeners";
 
 const config: Config = JSON.parse(readFileSync(join(__dirname, "../config.json")).toString("utf8"));
@@ -39,8 +39,6 @@ async function main(): Promise<void> {
     const context: Context = {
         client,
         db,
-        memQ: new Set(),
-        activityCooldown: new Map(),
         xGuilds: new Map(),
         startTime: new Date().getTime(),
         handlers: {
@@ -50,20 +48,17 @@ async function main(): Promise<void> {
         config
     };
 
-    setInterval(async () => {
-        const amount = context.memQ.size;
-        if (amount === 0) return;
-        await db.collection("members").bulkWrite(Array.from(context.memQ.values()).map((mem) => ({ replaceOne: { filter: { _id: mem._id }, replacement: mem.toDoc(), upsert: true } })));
-        context.memQ.clear();
-        console.log("Wrote " + amount + " to database.");
-        await db.collection("cpost").updateMany({ status: 2, time: { $lt: Math.floor(new Date().getTime() / 1000) - 172800 } }, { $set: { status: 3 } });
-    }, 300000);
-
-
-    for await (const doc of db.collection("guilds").find()) {
-        const memberDocs = await (await db.collection("members").find({ "_id.guildId": doc._id })).toArray();
-        context.xGuilds.set(doc._id.toString(), new XGuild(doc as unknown as XGuildDoc, memberDocs as unknown as XMemberDoc[]));
+    for await (const doc of db.collection<XGuildDoc>("guilds").find()) {
+        context.xGuilds.set(doc._id, new XGuild(doc));
     }
+    let d = new Date().getDay();
+    setInterval(() => {
+        const dn = new Date().getDay();
+        if (d != dn) {
+            d = dn;
+            context.xGuilds.forEach((v, k) => v.welcomeCount = 0);
+        }
+    }, 300000);
 
     for (const file of readdirSync(join(__dirname, "commands"))) {
         if (!file.endsWith(".js")) continue;
@@ -79,8 +74,7 @@ async function main(): Promise<void> {
     }
 
     client.on("interactionCreate", listeners.interaction(context));
-    client.on("messageCreate", listeners.messageCreate(context));
-    client.on("messageDelete", listeners.messageDelete(context));
+    client.on("guildMemberAdd", listeners.guildMemberAdd(context));
 
     console.log("Done.");
     console.log("Connecting to Discord...");

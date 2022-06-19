@@ -1,3 +1,2 @@
 export { handler as interaction } from "./interactionCreate";
-export { handler as messageCreate } from "./messageCreate";
-export { handler as messageDelete } from "./messageDelete";
+export { handler as guildMemberAdd } from "./guildMemberAdd";

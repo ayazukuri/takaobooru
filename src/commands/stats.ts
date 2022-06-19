@@ -21,7 +21,7 @@ function msToTime(duration: number): string {
 export const data = new SlashCommandBuilder()
     .setName("stats")
     .setDescription("Display statistics.");
-export const handler: CommandFunction = (context, guild) => async (interaction) => {
+export const handler: CommandFunction = (context, xGuild) => async (interaction) => {
     const embed = new MessageEmbed();
     embed
         .setColor(context.config.defaultColour as ColorResolvable)
@@ -34,7 +34,5 @@ export const handler: CommandFunction = (context, guild) => async (interaction) 
         .setFooter({
             text: "Takao.booru"
         });
-    const ch = guild.channels.get(interaction.channelId);
-    const allowCommands = !!(ch?.allowCommands);
-    interaction.reply({ embeds: [embed], ephemeral: !allowCommands });
+    interaction.reply({ embeds: [embed], ephemeral: true });
 };

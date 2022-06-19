@@ -1,10 +1,11 @@
-import { XGuild, XMember } from "./classes";
+import { XGuild } from "./classes";
 import { CommandInteraction, ButtonInteraction, Client } from "discord.js";
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { Db } from "mongodb";
 
-export type CommandFunction = (context: Context, guild: XGuild) => (interaction: CommandInteraction<"cached">) => Promise<void>;
-export type ButtonFunction = (context: Context, guild: XGuild) => (interaction: ButtonInteraction<"cached">, ...args: string[]) => Promise<void>;
+export type HandlerFunction<T> = (context: Context, guild: XGuild) => (interaction: T) => Promise<void>;
+export type CommandFunction = HandlerFunction<CommandInteraction<"cached">>;
+export type ButtonFunction = HandlerFunction<ButtonInteraction<"cached">>;
 export type ListenerFunction = (context: Context) => (...args: any[]) => Promise<void>;
 
 export interface Command {
@@ -33,8 +34,6 @@ export interface Config {
 export interface Context {
     client: Client;
     db: Db;
-    memQ: Set<XMember>;
-    activityCooldown: Map<string, number>;
     xGuilds: Map<string, XGuild>;
     startTime: number;
     handlers: {
@@ -47,48 +46,6 @@ export interface Context {
 export interface XGuildDoc {
     _id: string;
     logChannel: string;
-    approveChannel: string;
-    limitedRole: string;
-    roles: {
-        [id: string]: {
-            id: string;
-            level?: number;
-            multiplier?: number;
-            curator?: boolean;
-            staff?: boolean;
-        };
-    };
-    channels: {
-        [id: string]: {
-            id: string;
-            multiplier?: number;
-            allowCommands?: boolean;
-            moderatedPosts?: boolean;
-        };
-    };
-}
-
-export interface XMemberDoc {
-    _id: {
-        id: string;
-        guildId: string;
-    };
-    xp: number;
-    uploadLimit?: number;
-}
-
-// 0: PENDING, 1: APPROVED, 2: DELETED/PENDING, 3: DELETED, 4: FLAGGED/PENDING
-type PostStatus = 0 | 1 | 2 | 3;
-
-export interface CPostDoc {
-    _id: {
-        messageId: string;
-        approvalId: string;
-        authorId: string;
-        channelId: string;
-    };
-    count: number;
-    time: number;
-    status: PostStatus;
-    approver?: string;
+    actionChannel: string;
+    welcomeChannel: string;
 }
