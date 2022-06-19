@@ -6,6 +6,7 @@ export const data = new SlashCommandBuilder()
     .setDescription("Set welcome count.")
     .addNumberOption((option) =>
         option.setName("amount")
+            .setDescription("welcome amount")
             .setRequired(true)
     )
     .setDefaultPermission(false);
